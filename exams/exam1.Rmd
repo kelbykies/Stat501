@@ -1,0 +1,142 @@
+---
+title: "Stat501 Exam 1"
+author: "Kelby Kies"
+date: "3/13/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1:
+## Part 1: Display the dataset using no more than two pages of plots with color or character to distinguish observations for each gender and species. You may try out several options but report only the ones that make sense. Comment on the possible distinctiveness of the four categories and in the different variables. [20 points]
+```{r, fig.show="hold", out.width="50%", echo = FALSE, message = FALSE}
+# Import Libraries and source cod
+library(MASS)
+source("~/Desktop/stat_501/starcoord.R")
+source("~/Desktop/stat_501/surveyplot.R")
+source("~/Desktop/stat_501/ggandrews.R")
+
+# Assign crab dataset
+crabs <- crabs
+
+gender_crab <- cbind(crabs[,c(-1,-2,-3)], crabs[,2])
+starcoord(gender_crab,main  = 'Morphological Measurements of Crab based on Gender', class = T)
+surveyplot(cbind(crabs[,c(-1,-2,-3)], as.numeric(as.factor(crabs[,2]))), dataname = 'Morphological Measurements of Crab based on Gender', order = 2, lwd = 2)
+#ggandrews(df = gender_crab, type = 3, clr = 6, linecol = c('purple','green'))
+
+
+species_crab <- cbind(crabs[,c(-1,-2,-3)], crabs[,1])
+starcoord(species_crab, main = 'Morphological Measurements of Crab based on Species', class = T)
+surveyplot(cbind(crabs[,c(-1,-2,-3)], as.numeric(as.factor(crabs[,1]))), dataname = 'Morphological Measurements of Crab based on Species', order = 1, lwd = 2)
+
+```
+Comment on the possible distinctiveness of the four categories and in the different variables. [20 points]
+When we are looking at the distinction between gender, we see that there is quite a bit of separation between the two genders when looking at the star plot, although there is some overlap between the genders. For this plot, Class 1 and Class2 represent the different genders.It looks like there is some separation between two of the variables when looking at class2.We may not be able to assume a normal distribution here.  If we reference a survey plot, we observe the most separation between the genders when we sort by the rear width (RW) size. However, even then the 2 genders are not completely distinct when considering any measurement. 
+When we look at the distinction between species, we see clear separation between the two species (here denoted as class 1 and Class 2). When referencing the survey plot, we see the clearest separation between species when we order by the size of the frontal lobe (FL). The two speicies show an elliptical shape on the star coordinate plot, so we may be able to assume normality. 
+
+
+## Part 2: Evaluate whether the dispersions for the four categories are different. It is enough to display the correlations and the variances and to comment based on them. [10 points]
+```{r, fig.show="hold", out.width="50%", echo = FALSE, message = FALSE}
+library(MASS)
+library(dplyr)
+source('~/Desktop/stat_501/BoxMTest.R')
+source('~/Desktop/stat_501/plotcorr.R')
+crabs <- crabs
+# Dived the Crabs data into the 4 categories
+# Orange Females
+F_O_crabs <- dplyr::filter(crabs, crabs$sp == 'O')
+F_O_crabs <- dplyr::filter(F_O_crabs , F_O_crabs$sex == 'F')
+# Blue Females
+F_B_crabs <- dplyr::filter(crabs, crabs$sp == 'B')
+F_B_crabs <- dplyr::filter(F_B_crabs, F_B_crabs$sex == 'F')
+# Orange Males
+M_O_crabs <- dplyr::filter(crabs, crabs$sp == 'O')
+M_O_crabs <- dplyr::filter(M_O_crabs, M_O_crabs$sex == 'M')
+# Blue Males
+M_B_crabs <- dplyr::filter(crabs, crabs$sp == 'B')
+M_B_crabs <- dplyr::filter(M_B_crabs, M_B_crabs$sex == 'M')
+plot.corr(F_O_crabs[,4:8])
+plot.corr(F_B_crabs[,4:8])
+plot.corr(M_O_crabs[,4:8])
+plot.corr(M_B_crabs[,4:8])
+```
+Comment: TO Me it looks Like the four categories(Orange Females, Blue Femalse, Orange Males and Blue Males) have relative the same dispersions. The variances change slightly between the groups, however the overall correlation between the measurements is a very strong and positive. It seems like the measurements within each category are highly correlated. 
+
+## Part 3: Test if there is evidence of multivariate normality in the distributions of observations for each of the four groups. [10 points]
+```{r, echo = FALSE, message = FALSE}
+library(MASS)
+library(energy)
+crabs <- crabs
+# Use the energy test.
+print("Energy test for Female Orange Crabs")
+mvnorm.etest(F_O_crabs[c(-1,-2,-3)], R = 999)
+print("There is not evidence that the Female Orange crab data is MVN.")
+
+print("Energy test for Female Blue Crabs")
+mvnorm.etest(F_B_crabs[c(-1,-2,-3)], R = 999)
+print("There is evidence that the Female Blue crab data is MVN.")
+
+print("Energy test for Male Orange Crabs")
+mvnorm.etest(M_O_crabs[c(-1,-2,-3)], R = 999)
+print("There is evidence that the Male Orange crab data is MVN.")
+
+print("Energy test for Male Blue Crabs")
+mvnorm.etest(M_B_crabs[c(-1,-2,-3)], R = 999)
+print("There is evidence that the Male Blue crab data is MVN.")
+
+```
+## Part 4: Is there evidence of distinctiveness between the two species? We will analyze only the males in this exam.
+
+### 4a: We first test for differences in the means of the blue and orange crabs.Formulate the above as a hypothesis testing problem (i.e. state clearly the null and alternative hypothesis). [5 points]
+```{r, echo = FALSE, message = FALSE}
+male_crabs <- dplyr::filter(crabs, crabs$sex == 'M')
+
+```
+The null Hypothesis is defined: $$ H_0: \mu_{M,B} == \mu_{M,O} $$
+The alternative Hypothesis is defined: $$ H_1: \mu_{M,B} \neq \mu_{M,O} $$
+
+### 4b: Perform the Hotellings’ T 2 test statistic to test for equality of means. What is the Hotellings’ T 2 test statistic? Interpret your result. [10 + 5 + 5 points]
+```{r, echo =FALSE, message = FALSE}
+library(ICSNP)
+male_orange <- M_O_crabs[,c(-1,-2,-3)]
+male_blue <- M_B_crabs[,c(-1,-2,-3)]
+test <- HotellingsT2(male_blue, male_orange)
+print(test)
+# Note that the test actually returns the value of the F-statistic. 
+# So we need to COnvert to the T statistic. 
+f_val <- test$statistic[1,1]
+dfs <- test$parameter
+
+final_t2_stat <- f_val*((sum(dfs)-1)*dfs[1])/dfs[2]
+print(paste0('The Hotellings T2 test statistic is ', final_t2_stat))
+
+
+```
+The result of the Hotellings' T2 test shows that the mean values of the male, blue crabs is not equal to the male, orange crabs.This is based upon the p-value 2.2e-16 being less than 0.05 and also that the T2 statistic is greater than the F statistic. 
+
+
+### 4c: What are the assumptions that you are using in the test above? Among the assumptions that can be verified, is there evidence that they are satisfied? [5 + 5 points]
+One of the main assumptions that we are making in the Hotelling T2 test above is that the data follows a Multivariate Normal distribution. Based on the energy test we did in part 3, we can verify that this is true.
+
+Another assumption is that the data from both populations have common variance-covariance matrix. We can test this using the Bartlett test. 
+```{r, echo = FALSE, message = FALSE}
+source('~/Desktop/stat_501/BoxMTest.R')
+male_crabs <- dplyr::filter(crabs, crabs$sex == 'M') %>% dplyr::select(sp, FL, RW, CL, CW, BD)
+BoxMTest(male_crabs[,-1], cl = as.factor(male_crabs$sp), alpha=0.05)
+```
+This assumption isn't satisfied because the Barlett test rejected the null hypothesis that the var-cov matrix of the orange and blue male crabs are equal. 
+
+
+### 4d: Provide also individual pairwise t-tests, using Bonferroni and false discovery rates, controlled at 5% level of significance. Are there characteristics that are similar? [10 + 5 points]
+```{r, echo = FALSE, message = FALSE}
+male_crabs <- dplyr::filter(crabs, crabs$sex == 'M') %>% select(sp, FL, RW, CL, CW, BD)
+pairwise.t.tests <-function(x, group) {
+  group <-droplevels(group)
+  t.test(x[group== levels(group)[1]],x[group==levels(group)[2]])$p.value}
+print(apply(X = male_crabs[,-1], MAR = 2, FUN = pairwise.t.tests, group = male_crabs[,1]))
+
+```
+Based on the Bonferroni pairwise T-tests with FDR correction, we can see that the mean values for FL and BD differ significantly between the Blue and Orange male species. While the mean values fo RW, CL and CW do not differ significantly.
+

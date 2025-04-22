@@ -1,0 +1,254 @@
+---
+title: 'Stat501: Final Exam'
+author: "Kelby Kies"
+date: "5/6/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+
+
+# Question 1: We consider the problem of classifying a multinomial observation vector X into one of two classes Mult(n,p1) or Mult(n, p2) with prior probabilities $\pi$ and $(1-\pi)$, and equal misclassification costs. Show that the discriminant rule for this problem is linear: i.e. it can be reduced to classification based on whether a'x + c is positive or negative. [15 points]
+My apologies, but I didn't have time to make it back to this question. 
+
+
+
+# Question 2:
+
+## Part 1.) Is a multivariate normality assumption reasonable for the distribution of the attributes for each cultivar? [10 points; 1page]
+
+```{r}
+wine <- read.table('~/Desktop/stat_501/wine.dat', sep = ',')
+
+group1 <- dplyr::filter(wine, wine$V1 == 1)
+group2 <- dplyr::filter(wine, wine$V1 == 2)
+group3 <- dplyr::filter(wine, wine$V1 == 3)
+
+source('~/Desktop/stat_501/testnormality.R')
+
+# group1
+print("Cultivar 1 q-value:")
+Cramer.test(group1[,-1])
+print("Cultivar 2 q-value:")
+Cramer.test(group2[,-1])
+print("Cultivar 3 q-value:")
+Cramer.test(group3[,-1])
+```
+If the q-value returned is less than 0.05, then normality is not good and is rejected. Thus we can not support Multivariate Normality Assumptions and the data should be transformed. It appears that we can assume multivaraite normality for the 1st and 3rd Cultivar, but not for the 2nd cultivar because the q-value of 6.58242e-06 is smaller than 0.05. 
+
+
+## Part 2. Please perform a detailed factor analysis for wines in the third cultivar (i.e. cultivar given by 3). Use BIC to determine the number of factors. [15 points; 2 pages]
+```{r}
+library(fad)
+anlaysis_1 <- fad(x=as.matrix(group3[,-1]), factors=1, scores = "regression",rotation = "varimax", method = "mle")
+anlaysis_2 <- fad(x=as.matrix(group3[,-1]), factors=2, scores = "regression",rotation = "varimax", method = "mle")
+anlaysis_3 <- fad(x=as.matrix(group3[,-1]), factors=3, scores = "regression",rotation = "varimax", method = "mle")
+anlaysis_4 <- fad(x=as.matrix(group3[,-1]), factors=4, scores = "regression",rotation = "varimax", method = "mle")
+
+df <- rbind(c(anlaysis_1$factors,anlaysis_1$BIC),c(anlaysis_2$factors,anlaysis_2$BIC),c(anlaysis_3$factors,anlaysis_3$BIC),c(anlaysis_4$factors,anlaysis_4$BIC))
+df <- data.frame(Factors = c(anlaysis_1$factors,anlaysis_2$factors,anlaysis_3$factors,anlaysis_4$factors),
+                 BIC = c(anlaysis_1$BIC,anlaysis_2$BIC, anlaysis_3$BIC, anlaysis_4$BIC))
+library(ggplot2)
+ggplot(data = df, aes(x=Factors, y = BIC)) + geom_bar(stat="identity") + ggtitle("BIC values for Factor Analyses of WInes in the 3rd Cultivar")
+print("Here is the full analysis:")
+anlaysis_3
+```
+
+Here I performed a factor analysis using the varimax rotation for multiple factor values. What I found is that 3 factors is best to explain the data because it has the lowest BIC value. 
+
+## Part 3.) Use a multivariate analysis of variance to investigate whether cultivars have an effect on the average hue,ash content, and color intensity of the wine. Set-up the model, and summarize the analysis and the results. In doing so, evaluate the necessary assumptions in your model. [15 points; 1 page]
+```{r}
+library(car)
+# Fit a linear Model
+# we want to see if the cultivar has an effect on the avg. 
+# Hue(V4), ash content (V11) and color intensity( V12). 
+wine_lm <- lm(cbind(V4,V11, V12)~V1, data=wine)
+# Run Manova
+wine_manova <- Manova(wine_lm)
+summary(wine_manova)
+```
+
+I made a linear model with the formula: (Avg. Hue, Ash Content, Color Intensity) ~ Wine Cultivar to observe whether the wine cultivar has an effect on these other variables. After running the Manova on this linear model, I found that the Cultivar does in fact have a very significant effect on these variables. 
+In order to make inferences about the difference between cultivars we must make several assumptions including:
+- Our sample should come from a multivariate normal distribution. This assumption is mostly true, as we can see from Part 1. THe 2nd cultivar was not found to support multivariate normality.
+- Each unit should respond independently of any other unit. In this case, I believe our 'unit' is the wine itself. Although these wines are coming from the same part of Italy and 3 different cultivars, we can assume that each sample was taken independently. 
+- Covariance Matrices are Homogenous for all groups. For this we can use the Bartlett test.As we see below the covariance matrices are significantly different so this assumption is not valid.  
+```{r,echo = FALSE, message=FALSE, warning=FALSE}
+source('~/Desktop/stat_501/BoxMTest.R')
+BoxMTest(wine[,-1], cl = as.factor(wine$V1), alpha=0.05)
+```
+
+## Part 4: Using set.seed() with seed given by the last four digits of your university ID,split the original dataset into a random training set of 128 observations and a test set of the remaining 50 observations. Call them wine.train and wine.test. Test classification rules obtained from the training set and tested on the test set using the following:
+```{r}
+# Using set.seed()
+library(MASS)
+set.seed(2641)
+wine.train <- wine[sample(nrow(wine), 128), ]
+wine.test <- wine[-sample(nrow(wine), 128), ]
+
+# Quadratic Discriminant Analysis
+wine.qda<-qda(V1 ~ ., data=wine.train)
+wine.qda
+# Calculate the Error Rate using CV
+wine.qda_2<-qda(V1 ~ ., data=wine.train, CV = T)
+qda_error_rate <-mean(wine.qda_2$class!=wine.train$V1)
+qda_error_rate
+
+
+```
+Detailed Summary: Here I ran a quadratic discriminant analysis on the wine training data set with the formula. 
+$$Cultivar = Alcohol + Malic acid + Ash + Alkalinity of Ash + Magnesium + 
+Total Phenols + Flavanoids + Nonfavanoid phenols + Proanthocyanine + 
+Color Intensity + Hue + OD280/OD315 of diluted wines + Proline. $$
+What I found is that the quadratic discriminant analysis had a relatively low error rate of 0.0078125.
+
+
+```{r}
+
+# K-Nearest neightbor classification with a cross-validated choice of k
+library(class)
+# Set up the cross-validated error rate of the K-NN method
+wine.train.scaled <- scale(wine.train[,-1])
+knn.cv.err<-NULL
+knn.cv.sd<-NULL
+
+for(i in 1:10) {
+  temp<-NULL
+  for(j in 1:100)
+    temp <-c(temp,mean(knn.cv(wine.train.scaled, cl = wine.train$V1, k =i)!=wine.train$V1))
+  knn.cv.err<-c(knn.cv.err,mean(temp))
+  knn.cv.sd<-c(knn.cv.sd,sd(temp))}
+
+plot(knn.cv.err, xlim = c(1, 10),
+     ylim=c(min(knn.cv.err - 1.96 * knn.cv.sd),
+       max(knn.cv.err + 1.96 * knn.cv.sd)), type = "n")
+lines(knn.cv.err + 1.96 * knn.cv.sd, lty = 2, col = "blue")
+lines(knn.cv.err - 1.96 * knn.cv.sd, lty = 2, col = "green")
+lines(knn.cv.err, col = "red")
+
+
+# Misclassification Rate
+mean(knn(train = wine.train.scaled, cl = wine.train$V1, test = wine.train.scaled, k = 5)!=wine.train$V1)
+```
+Detailed Summary: We can see here that the optimal k for the wine training 
+dataset is 5 because that is the lowest point on the graph where the red line 
+reaches. The resulting error rate is 0.0234375. 
+
+```{r}
+# Best cross-validated classification tree
+library(tree)
+wine.tree <-tree(formula =factor(V1)~., data = wine.train)
+wine.tree.cv <-cv.tree(wine.tree, K =nrow(wine.train))
+plot(wine.tree.cv)
+
+wine.prune.tree <-prune.tree(wine.tree, best = 6)
+plot(wine.prune.tree)
+text(wine.prune.tree)
+
+wine.tree.pred <-apply(predict(wine.prune.tree),1,which.max)
+mean(wine.tree.pred!=wine.train$V1)
+```
+Detailed Summary: When using a cross validate classification tree, I chose 6 as 
+the optimal number of decisions to put the tree. The resulting error rate is
+0.0234375. 
+
+Out of all the methods, we see that the quadratic discriminant analysis is best 
+to classify the data. 
+
+
+## Part 5: Ignoring the cultivar information,group the constituent attributes using:
+
+### a.) Hierarchical clustering with average linkage, and K = 3 groups.
+```{r}
+wine_cultivar<-wine[ ,1]	
+wine_data<-wine[ ,-1]	
+
+#  Standardize the data
+wine_mean<-apply(wine_data,2,mean)
+wine_std<-sqrt(apply(wine_data,2,var))
+wine_sx<-sweep(wine_data,2,wine_mean,FUN="-")
+wine_sx<-sweep(wine_sx,2,wine_std,FUN="/")
+
+hc <- hclust(dist(wine_sx),method="average")
+plot(hc,label=wine_cultivar)
+title("Average Linkage Cluster Analysis: Wine Data") 
+
+```
+
+### b.) K-means clustering with appropriate initialization and with K = 3.
+```{r}
+library(MASS)
+
+# K-Means
+kmnsinithcl <- function(x.data, nclus, ncut = nclus, hcl.tree)
+{
+    x.hcl <- hcl.tree
+    x.cl <- cutree(x.hcl, k = ncut)
+    data.x <- data.frame(x.data, cl = x.cl)
+    means <- aggregate(. ~ cl, data = data.x, FUN = mean)
+    return(kmeans(x.data,centers= means[, -1]))
+}
+
+hc_2 <- hclust(dist(wine_sx),method="ward.D2") 
+km <- kmnsinithcl(wine_sx, nclus = 3, ncut = 3, hcl.tree = hc_2)
+
+
+a <- lda(wine_sx, km$cluster)  
+
+scores <- as.matrix(wine_sx) %*% a$scaling[ ,1:2]
+eqscplot(scores, type="n", xlab="first canonical discriminant",
+         ylab="second canonical discriminant")
+text(x = scores[ ,1], y = scores[ ,2], cutree(hc_2, 3))
+title("K-means Cluster Analysis: Wine Data")
+
+```
+Here we can see that the K-means cluster analysis resulted in 3 pretty distinctive clusters. There is a small overlap betwee cluster 2 and 3, but otherwise it is pretty separated. 
+
+
+### c.) Model-based clustering,with BIC to determine the number of groups and the variance-covariance structure.
+```{r}
+library(mclust)
+source('~/Desktop/stat_501/ggandrews.R')
+hc_3 <- Mclust(wine_sx)
+
+plot(hc_3$BIC)
+title("Model Based CLuster Analaysis BIC Values: Wine Data")
+
+df <- data.frame(hc_3$classification, wine[,-1])
+ggandrews(df = df, clr = 1, return_value=F)
+```
+THe model based cluster resulted in a 3 cluster solution for clustering the wines. 
+
+
+## Part 6.) Perform an appropriate principal components analysis to reduce the dimensionality of the variables in the dataset. How many principal components are enough to account for at least 80% of the variation? Provide an interpretation for the first few principal components, if possible. [10 points; 2 pages]
+```{r}
+
+pca <- prcomp(wine[,-1], scale = T)
+print("PCA SUMMARY:")
+summary(pca)
+
+pca$rotation[,1:3]
+```
+Five principal components are enough to account for at least 80.16% of the variation of the data. 
+
+When looking at the first 3 principal components wee see that there is a contrast in the variable means (V2,V6,V7,V8,V10,V12,V13,V14) and (V3,V4,V5,V9, V11). This first principal component accounts for 36.2 of the total variation of the data. When looking at the second principal component there is a contrast between the variable means for ( V5, V8, V12, V13) and the rest of the variables. With the second component, 55.4% of the total variation in the data is accounted for. For the third PC, we mainly see a contrast in the variable means (V2, V11, V14) and the rest of the variables. 
+
+## Part 7.) Carrying on with the “first few” principal components analysis, does reducing dimensionality of the dataset using principal components in this way improve the distinctiveness of the cultivars as explained by these new projections of the dataset? Answer this question descriptively (visually). [5 points; 2 pages]
+```{r}
+plot(pca$x[,1:2], pch=16, col=as.numeric(wine[,1]), main="Wine Data PCA separated by Cultivar") 
+legend(3.75, 4, pch=16, col=unique(as.numeric(wine[,1])),legend=unique(wine[,1]))
+
+pairs(pca$x[,1:3],
+      panel=function(x,y){panel.smooth(x,y, col = as.numeric(wine[,1])+2,
+        pch = 20, cex = 1) 
+        abline(lsfit(x,y),lty=2) })
+```
+The first plot is only showing the first 2 principal components. We can see that for the most part the three cultivars are separated on this plot. 
+
+I included the second plot so we could look at more than 2 PCs. Again we see good separation between the 3 cultivars using the first 2 PC's. PC1 and PC3 also show good separation between the 3 cultivars, but when we look at PC2 and PC3 there isn't as much distinctiveness between the 3 cultivars. 
