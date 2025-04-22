@@ -1,0 +1,265 @@
+---
+title: "Stat501_Homework1"
+author: "Kelby Kies"
+date: "2/17/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Question #1: 
+```{r, echo=FALSE, message=FALSE}
+library(tinytex)
+library(ggplot2)
+knife_matching <- read.csv('~/Desktop/stat_501/hw1/Knife-matching.csv')
+```
+
+## Part A:
+### I:: For each frequency band,make histograms of the correlations of the match and non-match pairs in one figure.
+
+``` {r, echo = FALSE, message = FALSE, fig.height=2}
+#hist(knife_matching$X5.10, main = paste("Histogram of match/non-match correlation using 5-10 Hz"))
+#hist(knife_matching$X10.20, main = paste("Histogram of match/non-match correlation using 10-20 Hz"))
+
+ggplot(knife_matching, aes(x=X5.10, color = match)) + 
+  geom_histogram() + scale_color_manual(values = c('blue', 'red')) + 
+  ggtitle("Histogram of match/non-match correlation using 5-10 Hz") 
+
+ggplot(knife_matching, aes(x=X10.20, color = match)) + geom_histogram() + 
+  scale_color_manual(values = c('blue', 'red')) + ggtitle("Histogram of match/non-match correlation using 10-20 Hz")
+
+```
+Comment on the separation of the matches and non-matches.:
+
+The majority of images have a low correlation which makes sense because the 
+majority of the image pairs (knife tip/blade) will not match. However, you can 
+see that image pairs that have a high correlation and those values are coordinate 
+to the matched knife tip to knife base.
+We see that matches/nonmatches are not completely separated, but for the most part
+there is clear separation between matches/nonmatches. 
+
+### II::For each pair,and using color to denote match/non-match, plot the correlation between the 5-10 and 10-20 band pairs.
+
+``` {r, echo=FALSE, message = FALSE, fig.height = 3}
+data <- data.frame(freq_5_10 = knife_matching$X5.10, freq_10_20 = knife_matching$X10.20, match = knife_matching$match)
+data$color[data$match == 'match'] <- 'blue'
+data$color[data$match != 'match'] <- 'red'
+#plot(data$freq_5_10, data$freq_10_20, col = data$color)
+ggplot(data, aes(x=freq_5_10, y=freq_10_20)) + geom_point(color = data$color) + 
+  ggtitle('Correlation between 5-10 Hz and 10-20 Hz Bandwith') 
+```
+
+Comment on the separation of the matches/non-matches in the bivariate plot 
+  vis-a-vis the univariate plots:
+  
+Both plots show the separation of the matches from the non-matches. 
+The univariate plots from part A.i. show a bimodal curve indicating matching 
+image pairs have a high correlation, while non-matches have a low correlation. 
+These plots also might be good for comparing the differences between the 
+frequencies. 
+
+The bivariate plot shows that the matches(blue) and non-matches(red) are not as 
+separated as we may think. It displays a positive correlation between the two 
+frequency bands. For the most part the two frequency bands are separated, but 
+there are a few matches that seem almost like potential outliers. 
+
+### III:: Connect all the 9 correlation pairs from this set by means of a line
+
+``` {r, echo=FALSE, message = FALSE, fig.height = 3}
+data <- data.frame(freq_5_10 = knife_matching$X5.10, freq_10_20 = knife_matching$X10.20, match = knife_matching$match)
+data$color[data$match == 'match'] <- 'blue'
+data$color[data$match != 'match'] <- 'red'
+line <- dplyr::filter(knife_matching, knife_matching$knife == 'T10:T10')
+
+# plot(data$freq_5_10, data$freq_10_20, col = data$color)
+# lines(line$X5.10, line$X10.20, col="black", lwd=2)
+ggplot(data, aes(x=freq_5_10, y=freq_10_20)) + geom_point(color = data$color)+geom_line(data = line, aes(X5.10, X10.20)) 
+```
+
+Comment on separation when all 9 correlation pairs are considered together:
+I think that when all 9 pairs are considered it shows the separation between matches/nonmatches
+better than before. Although the line is not as clean cut as we would like to see. 
+
+## Part B: 
+The inverse hyperbolic tangent transformation is often used on correlations to 
+stabilize its variance. Repeat the exercise in the previous part, but use the 
+inverse hyperbolic tangent transformed correlations.Comment.
+
+``` {r, echo=FALSE, message = FALSE, fig.height = 2}
+# Compute Inverse Hyperbolic tangent
+
+ggplot(knife_matching, aes(x=atanh(X5.10), color = match)) + 
+  geom_histogram() + scale_color_manual(values = c('blue', 'red')) + 
+  ggtitle("Histogram of match/non-match correlation using 5-10 Hz") 
+
+ggplot(knife_matching, aes(x=atanh(X10.20), color = match)) + geom_histogram() + 
+  scale_color_manual(values = c('blue', 'red')) + ggtitle("Histogram of match/non-match correlation using 10-20 Hz")
+
+```
+Comment: By using the inverse hyperbolic tangent transformed correlations it 
+really helped show the difference between the matches/nonmatches. The inverse 
+hyperbolic tangent transformation really stretched out the variance of the 
+match knife tip/blade pairs, and condensed the variance of nonmatches. 
+
+
+``` {r, echo=FALSE, message = FALSE, fig.height = 3}
+data <- data.frame(freq_5_10 = atanh(knife_matching$X5.10), freq_10_20 = atanh(knife_matching$X10.20), match = knife_matching$match)
+data$color[data$match == 'match'] <- 'blue'
+data$color[data$match != 'match'] <- 'red'
+line <- dplyr::filter(knife_matching, knife_matching$knife == 'T10:T10')
+
+#plot(data$freq_5_10, data$freq_10_20, col = data$color)
+#lines(atanh(line$X5.10), atanh(line$X10.20), col="black", lwd=2)
+ggplot(data, aes(x=freq_5_10, y=freq_10_20)) + geom_point(color = data$color)+geom_line(data = line, aes(atanh(X5.10), atanh(X10.20))) 
+```
+Comment:The matched image pairs seem to be more spread out than before. 
+The nonmatches are clustered tighter than before which helps exaggerate the 
+separation between matches/nonmatches. The line here looks similar to what we had before except 
+it is stretched along with the variance of the match pairs. 
+
+# Question #2:
+## Part A:
+``` {r, echo = FALSE, message = FALSE}
+library(dplyr)
+sclerosis <- read.table('~/Desktop/stat_501/hw1/sclerosis.dat')
+#the age, total response of both eyes to stimulus S1, absolute difference between response of the two eyes to stimulus S1, total response of both eyes to stimulus S2 and absolute difference between response of the two eyes to stimulus S2 respectively.
+
+sclerosis<- dplyr::rename(sclerosis, age = V1, S1 = V2, Diff_S1 = V3, S2 = V4, Diff_S2 = V5, group = V6)
+
+sclerosis_group <- dplyr::filter(sclerosis, sclerosis$group == 0) %>% dplyr::select(age,S1,Diff_S1, S2, Diff_S2)
+normal_group <- dplyr::filter(sclerosis, sclerosis$group != 0) %>% dplyr::select(age,S1,Diff_S1, S2, Diff_S2)
+
+
+sclerosis_mean <- colMeans(sclerosis_group)
+normal_mean <- colMeans(normal_group)
+print("Calculate the means for each group:")
+print(cbind(sclerosis_mean, normal_mean))
+```
+
+## Part B:
+Use the plotcorr function to display the correlation matrix for each group. 
+Comment.
+
+``` {r, echo = FALSE, message = FALSE, fig.height = 3}
+plot.corr <- function(xx = NULL, corrplot.labels = names(xx), cor.xx = NULL, var.xx = NULL, labels.col="black", cor.col="darkgreen", vars.col="#6A3D9A", digits.var = 2)
+{
+    require(corrplot)
+    if (is.null(cor.xx)) 
+        cor.xx <- cor(as.matrix(xx)) else {
+                              d <- diag(cor.xx)
+                              if (any(d <= 0)) {
+                                  if (is.null(xx)) {
+                                      cat("Invalid correlation matrix provided, with no data to calculate from\nExiting:")
+                                      cor.xx <- NULL
+                                  }
+                                      else
+                                                                                                                           {
+                                                                                                                               ##                                                                              ## ignore dispersion/correlation matrix
+                                                                                                                               ##
+                                                                                                                               cat("this is not a valid correlation matrix: calculating our own from the data\n")
+                                                                                                                               cor.xx <- cor(xx)
+                                                                                                                           }
+                              }
+                              else {
+                                  if (!((length(unique(d)) == 1) & (sum((unique(d) == 1)) == 1))) {
+                                      ##
+                                      ## not a correlation but a dispersion 
+                                      ##
+                                      if (sum(var.xx != diag(cor.xx)) !=0) {
+                                          cat("supplied variances do not match diagonals of the supplied dispersion matrix: variances will be recalculated from the dispersion matrix\n")
+                                          var.xx <- d
+                                      }
+                                      ## not correlation matrix, but covariance matrix
+                                      ## convert to correlation matrix
+
+                                      browser()
+                                      cor.xx <- diag(1/sqrt(d)) %*% cor.xx %*% diag(1/sqrt(d))
+                                  }
+                              }
+                          }
+    if (is.null(var.xx)) {
+        if (is.null(xx)) {
+            var.xx <- NULL
+            cat("variances not provided, with no dataset\nExiting\n")
+        }
+        else 
+            var.xx <- apply(X = as.matrix(xx), MAR = 2, FUN = var)
+    }
+    if (!all(c(is.null(var.xx), is.null(cor.xx), is.null(xx)))) {
+        corrplot(cor.xx, method="ellipse", type="lower", tl.pos="n", tl.col=labels.col, cl.pos="r")
+        rownames(cor.xx) <- as.character(round(var.xx, digits = digits.var)) ##Positioning variances on the diagonals
+        colnames(cor.xx) <- rownames(cor.xx) ##Positioning variances on the diagonals
+        corrplot(cor.xx, method="number", type="upper", col= cor.col, cl.pos="n", tl.pos="d", tl.col = vars.col, add=TRUE)
+        axis(3, at = 1:ncol(cor.xx), labels = corrplot.labels, lty = 0, pos = ncol(cor.xx) + c(0.4, 0.7))
+        axis(2, at = nrow(cor.xx):1, labels = corrplot.labels, lty = 0, pos = c(0.6, ncol(cor.xx) + 0.7))
+    }
+}
+
+plot.corr(sclerosis_group) 
+plot.corr(normal_group)
+
+```
+
+Comment: We can see that all variables have a positive correlation while Diff_S1/age and Diff_S2/age are negatively correlated. 
+S2/S1 & Diff_S2/Diff_S1 have a very strong correlation while Diff_S1/age, Diff_S2/age, S1/age, S2/age, Diff_S2/S1 and Diff_S2/S2 have a very weak correlation. 
+
+# Question 3: 
+## Part A:
+Read in the TIFF image and convert to a dataset of 375000 3-dimensional observations.
+``` {r, message = FALSE, echo = FALSE}
+library(tiff)
+RGB_values <- readTIFF("~/Desktop/stat_501/hw1/jubabrinda.tif", native = FALSE, all = FALSE, convert = FALSE,info = FALSE, indexed = FALSE, as.is = FALSE)
+
+dim(RGB_values) <- c(500 * 750 , 3)
+colnames(RGB_values) <- c('red','green','blue')
+print('Top 10 rows of RGB Values matrix')
+print(head(RGB_values))
+print('Dimensions of RGB Values matrix')
+print(dim(RGB_values))
+```
+
+## Part B:
+Use the plotcorr function to display the correlation matrix between the three colors. Comment.
+``` {r, echo = FALSE, messages = FALSE, fig.height = 3}
+plot.corr(RGB_values, colnames(RGB_values))
+```
+ 
+ Comment: We can see that all colors have a positive correlation with each other.
+ Blue and Green have a very strong correlation, while the lowest correlation was 
+ between blue and red.
+ 
+# Question 4:
+
+Show that the $d^{2}(\mathbf{X^{\circ}}, \mathbf{Y^{\circ}}) = 2 - 2 * Corr(\mathbf{X}, \mathbf{Y})$
+
+Definitions:
+$$ \mathbf{X} = \begin{bmatrix} X_1\\ X_2\\...\\X_p \end{bmatrix} $$ 
+$$ \mathbf{Y} = \begin{bmatrix} Y_1\\ Y_2\\...\\Y_p \end{bmatrix} $$
+$$ \mathbf{X}^{\circ} = \frac{(\mathbf{X} - \mathbf{X}'\cdot\mathbf{1}\cdot\mathbf{1}/p)}{||(\mathbf{X} - \mathbf{X}'\cdot\mathbf{1}\cdot\mathbf{1}/p)||} = \frac{(\mathbf{X}-\mathbf{\overline X})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X}})^2} $$
+
+
+
+
+
+
+$$ \mathbf{Y}^{\circ} = \frac{(\mathbf{Y} - \mathbf{Y}'\cdot\mathbf{1}\cdot\mathbf{1}/p)}{||(\mathbf{Y} - \mathbf{Y}'\cdot\mathbf{1}\cdot\mathbf{1}/p)||} = \frac{(\mathbf{Y}-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (Y_i - \mathbf{\overline Y}})^2} $$
+
+Show that the $d^{2}(\mathbf{X^{\circ}}, \mathbf{Y^{\circ}}) = 2 - 2 * Corr(\mathbf{X}, \mathbf{Y})$
+
+$$ d^{2}(\mathbf{X^{\circ}}, \mathbf{Y^{\circ}}) = \left( \sqrt{\sum_{j=1}^p (X^{\circ}_{j} - Y^{\circ}_{j})^2}\right)^2 =  \sum_{j=1}^p (X^{\circ}_{j} - Y^{\circ}_{j})^2 $$
+Plug in $\mathbf{X^{\circ}}$ & $\mathbf{Y^{\circ}}$.
+
+$$ = \sum_{i=1}^p  (\frac{(X_i-\mathbf{\overline X})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2}} - \frac{(Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (Y_i - \mathbf{\overline Y})^2}})^2 $$
+
+$$ = \sum_{i=1}^p (\frac{(X_i-\mathbf{\overline X})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2}})^2 - 2 \cdot \frac{(X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y} )}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2}\cdot \sqrt{\sum_{i=1}^{p} (Y_i - \mathbf{\overline Y})^2}} + (\frac{(Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (Y_i -\mathbf{\overline Y})^2}}) ^2 $$
+$$ = \sum_{i=1}^p (\frac{(X_i-\mathbf{\overline X})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2}})^2 - 2\cdot \frac{(X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2\cdot  (Y_i - \mathbf{\overline Y})^2}} + (\frac{(Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (Y_i -\mathbf{\overline Y})^2}}) ^2 $$
+$$ = \sum_{i=1}^p  \frac{(X_i-\mathbf{\overline X})^2}{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2} - 2\cdot \sum_{i=1}^p  \frac{(X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2\cdot  (Y_i - \mathbf{\overline Y})^2}} + \sum_{i=1}^p \frac{(Y_i-\mathbf{\overline Y})^2}{\sum_{i=1}^{p} (Y_i - \mathbf{\overline Y})^2} $$
+$$ = 1 - 2\cdot \sum_{i=1}^p  \frac{(X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2\cdot  (Y_i - \mathbf{\overline Y})^2}} + 1 $$
+$$ = 2 - 2\cdot \sum_{i=1}^p  \frac{(X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y})}{\sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2\cdot  (Y_i - \mathbf{\overline Y})^2}} $$
+$$ = 2-2 \cdot\frac{(\frac{1}{p-1}) \sum_{i=1}^p (X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y})}{(\frac{1}{p-1}) \sqrt{\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2\cdot  (Y_i - \mathbf{\overline Y})^2}} $$ 
+$$ = 2-2 \cdot\frac{(\frac{1}{p-1}) \sum_{i=1}^p (X_i-\mathbf{\overline X})\cdot (Y_i-\mathbf{\overline Y})}{ \sqrt{ (\frac{1}{p-1})^2\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2\cdot  (Y_i - \mathbf{\overline Y})^2}} $$
+$$ = 2-2\cdot \frac{s_{xy}}{\sqrt{ (\frac{1}{p-1})\sum_{i=1}^{p} (X_i - \mathbf{\overline X})^2}\sqrt{ (\frac{1}{p-1})\sum_{i=1}^{p} (Y_i - \mathbf{\overline Y})^2}} $$
+$$ = 2 - 2\cdot \frac{s_{xy}}{\sqrt{s_{xx}}\sqrt{s_{yy}}} $$
+$$ = 2-2\cdot Corr(\mathbf{X},\mathbf{Y}) $$
+
