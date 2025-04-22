@@ -1,0 +1,180 @@
+---
+title: "Stat501 Homework 7"
+author: "Kelby Kies"
+date: "4/16/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1:
+
+## Part A.) Provide a factor analysis of the dataset for q = 1, 2, 3, 4 factors. Use BIC to determine the number of optimal factors. [10 points]
+
+```{r, echo=FALSE, message=FALSE,warning=FALSE}
+# Use fad() in R package fad
+library(fad)
+load('~/Desktop/stat_501/GRB-5groups.rda')
+anlaysis_1 <- fad(x=as.matrix(GRB[,-1]), factors=1, scores = "regression",rotation = "promax", method = "mle")
+anlaysis_2 <- fad(x=as.matrix(GRB[,-1]), factors=2, scores = "regression",rotation = "promax", method = "mle")
+anlaysis_3 <- fad(x=as.matrix(GRB[,-1]), factors=3, scores = "regression",rotation = "promax", method = "mle")
+anlaysis_4 <- fad(x=as.matrix(GRB[,-1]), factors=4, scores = "regression",rotation = "promax", method = "mle")
+
+df <- rbind(c(anlaysis_1$factors,anlaysis_1$BIC),c(anlaysis_2$factors,anlaysis_2$BIC),c(anlaysis_3$factors,anlaysis_3$BIC),c(anlaysis_4$factors,anlaysis_4$BIC))
+df <- data.frame(Factors = c(anlaysis_1$factors,anlaysis_2$factors,anlaysis_3$factors,anlaysis_4$factors),
+                 BIC = c(anlaysis_1$BIC,anlaysis_2$BIC, anlaysis_3$BIC, anlaysis_4$BIC))
+library(ggplot2)
+ggplot(data = df, aes(x=Factors, y = BIC)) + geom_bar(stat="identity")
+
+print("Q=3 Factors are Optimal!")
+print("Here is the full analysis:")
+print(anlaysis_3)
+```
+In order to estimate the number of optimal factors, we want to choose q (#factors) such that our log likelihood function is maximized and thus our BIC is minimized. Here I used the fad() function to run a factor analysis on the GRB data, but I didn't include the class variable. When trying different rotation methods, I found that promax provided me results where I could interpret the lowest # of factors. By looking at the BIC's, we can see that q=3 factors produces the smallest BIC value therefore 3 factors is optimal.
+
+
+## Part B.) Describe the uniquenesses. How do they compare with the original variances? [5 points]
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+# Uniqueness:
+print("Here are the uniqueness values from the factor analysis with 3 factors:")
+print(anlaysis_3$uniquenesses)
+# Variances
+print("Here are the original Variances:")
+variances <- diag(cov(GRB[,-1]))
+print(variances)
+
+```
+Here we can see that relatively most of the variance is explained by common factors for the majority of our variables. We can see this when looking at the variable T50, T90, F1, F2, F3, P64 and P256. These uniqueness values are all small!
+The uniqueness value for the variable F4 accounts for a big portion of the original variance as well.Here the uniqueness value is: 0.48754868 and the original variance of F4 is: 0.7374003.
+
+## Part C.) Describe the factor loadings at the optimal number of factors that are obtained by BIC. [10 points]
+
+
+```{r, warning=FALSE, message=FALSE, echo = FALSE}
+print("Here are the factor loadings for 3 factors:")
+anlaysis_3$loadings
+
+```
+Loadings close to -1 or 1 indicate that the factor strongly influences the variable. Loadings close to 0 indicate that the factor has a weak influence on the variable.
+Here we can see that the 1st factor has the most influence on T50, T90, F1, F2 and F3. The 2nd factor has the most influence on the variables P64, P256 and P1024.
+
+The 3 factors explain about 93.9% of the total variance. 
+
+
+# Question 2: We will now characterize the variability of handwriting in the context of digits. Specifically, we will focus on the zip code dataset and only on the digit 5. (For this reduced dataset, n = 168 < 256 = p so that the fad package will need to be used.)
+
+## Part A.) Use factor analysis with q=1,2,...,15 factors and BIC to decide on the number of factors. Display the factor loadings obtained and the uniquenesses by means of images. [15 points]
+
+
+```{r, echo=FALSE, messsage=FALSE, warning=FALSE}
+library(dplyr)
+load('~/Desktop/stat_501/zip-sep.rda')
+
+zip_5 <- zip.sep[[6]]
+
+# Use fad with q = 1...15 and BIC to decide on # of factors
+anlaysis_1 <- fad(x=zip_5, factors=1, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_2 <- fad(x=zip_5, factors=2, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_3 <- fad(x=zip_5, factors=3, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_4 <- fad(x=zip_5, factors=4, scores = "Bartlett",rotation = "varimax",  method = "mle")
+anlaysis_5 <- fad(x=zip_5, factors=5, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_6 <- fad(x=zip_5, factors=6, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_7 <- fad(x=zip_5, factors=7, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_8 <- fad(x=zip_5, factors=8, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_9 <- fad(x=zip_5, factors=9, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_10 <- fad(x=zip_5, factors=10, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_11 <- fad(x=zip_5, factors=11, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_12 <- fad(x=zip_5, factors=12, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_13 <- fad(x=zip_5, factors=13, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_14 <- fad(x=zip_5, factors=14, scores = "Bartlett",rotation = "varimax", method = "mle")
+anlaysis_15 <- fad(x=zip_5, factors=15, scores = "Bartlett",rotation = "varimax", method = "mle")
+
+
+dim(anlaysis_10$loadings)
+df_2 <- data.frame(Factors = c(anlaysis_1$factors,anlaysis_2$factors,anlaysis_3$factors,anlaysis_4$factors,
+                             anlaysis_5$factors,anlaysis_6$factors,anlaysis_7$factors,anlaysis_8$factors,
+                             anlaysis_9$factors,anlaysis_10$factors,anlaysis_11$factors,anlaysis_12$factors,
+                             anlaysis_13$factors,anlaysis_14$factors,anlaysis_15$factors),
+                 BIC = c(anlaysis_1$BIC,anlaysis_2$BIC,anlaysis_3$BIC,anlaysis_4$BIC,
+                             anlaysis_5$BIC,anlaysis_6$BIC,anlaysis_7$BIC,anlaysis_8$BIC,
+                             anlaysis_9$BIC,anlaysis_10$BIC,anlaysis_11$BIC,anlaysis_12$BIC,
+                             anlaysis_13$BIC,anlaysis_14$BIC,anlaysis_15$BIC))
+lowest_value <- min(anlaysis_1$BIC,anlaysis_2$BIC,anlaysis_3$BIC,anlaysis_4$BIC,
+                             anlaysis_5$BIC,anlaysis_6$BIC,anlaysis_7$BIC,anlaysis_8$BIC,
+                             anlaysis_9$BIC,anlaysis_10$BIC,anlaysis_11$BIC,anlaysis_12$BIC,
+                             anlaysis_13$BIC,anlaysis_14$BIC,anlaysis_15$BIC)
+library(ggplot2)
+ggplot(data = df_2, aes(x=Factors, y = BIC)) + geom_bar(stat="identity")
+
+# Display the factor loadings/uniqueness by means of images
+
+# Make an image with factor loadings
+par(mfrow = c(5,5), mar = rep(0.1, 4))
+for (i in 1:10)
+  image(z = matrix(anlaysis_10$loadings[,i], ncol = 16, by = F)[,16:1], axes = F, col = gray(15:0/15))
+
+# Make an image with the uniqueness values
+image(z = matrix(anlaysis_10$uniquenesses, ncol = 16, by = F)[,16:1], axes = F, col = gray(15:0/15))
+
+```
+
+
+## Part B.) Intepret the results from (a) above. [10 points]
+
+After running a fad() on the zip data only for the digit 5, I determined that 10 factors is optimal due to the analysis producing the lowest "BIC" value as shown in the plot. The BIC is -19864.71. 
+
+Next I used images to display the results of the anlaysis i.e. the factor loadings (first image) and the uniqueness values (second image).The factor loadings are in a matrix that is 256 row by 10 columns. TO create this image, I took each column and made it into a 16 by 16 matrix. The image resulted in 10 very blurry images of the number 5. Also, I think the images get a little harder to distinguish '5'. However, these images are not as blurry as the image created with the uniqueness values. 
+
+
+
+# Question 3: We go back to the psychological dataset of HW5.
+
+## Part A.) Perform a canonical correlation analysis between the academic variables and the psychological response variables. Comment. [10 points]
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+library(sas7bdat)
+
+psych_sas7bdat <- read.sas7bdat('~/Desktop/stat_501/hw5/psych.sas7bdat', debug=FALSE)
+pairs(psych_sas7bdat[,-7], panel = panel.smooth,
+              main = "Academic/Psychological data")
+academic <- psych_sas7bdat[, c(3:5)]
+psycological <- psych_sas7bdat[, c(1,2,6)]
+cca <- cancor(academic, psycological)
+cca
+```
+The first canoncial correlation between the academic(READ,WRITE,SCIENCE) and the psychological(MOTIVATION, SELF CONCEPT, LOCUS_OF_CONTROL) variables is 0.4432105. The second canoncial correlation between the variable sets is 0.1533331 and the 3rd canonical correlation is 0.0188313. I would say that the two sets of variables do not have a strong correlation because the first correlation value is not that close to 1 or -1. However the variable sets are postively correlated. 
+
+## Part B.) Perform individual canonical correlation analyses between the academic and the psychological response sets of variables for each of the three program groups. Comment. [15 points]
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+# Program 1
+academic_1 <- dplyr::filter(psych_sas7bdat, psych_sas7bdat$PROG == 1)[, c(3:5)]
+psycological_1 <- dplyr::filter(psych_sas7bdat, psych_sas7bdat$PROG == 1)[, c(1,2,6)]
+cca_1 <- cancor(psycological_1, academic_1)
+cca_1
+```
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+# Program 2
+academic_2 <- dplyr::filter(psych_sas7bdat, psych_sas7bdat$PROG == 2)[, c(3:5)]
+psycological_2 <- dplyr::filter(psych_sas7bdat, psych_sas7bdat$PROG == 2)[, c(1,2,6)]
+cca_2 <- cancor(academic_2, psycological_2)
+cca_2
+```
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+# Program 3
+academic_3 <- dplyr::filter(psych_sas7bdat, psych_sas7bdat$PROG == 3)[, c(3:5)]
+psycological_3 <- dplyr::filter(psych_sas7bdat, psych_sas7bdat$PROG == 3)[, c(1,2,6)]
+cca_3 <- cancor(academic_3, psycological_3)
+cca_3
+```
+For the students in PROG1, the first canoncial correlation between the academic(READ,WRITE,SCIENCE) and the psychological(MOTIVATION, SELF CONCEPT, LOCUS_OF_CONTROL) variables is 0.43000305. The second canoncial correlation between the variable sets is 0.21720225 and the 3rd canonical correlation is 0.07193644. I would say that the two sets of variables do not have a strong correlation because all of the canonical correlations are not that close to 1 or -1. However the variable sets do have a slight positive correlation.
+
+
+For the students in PROG2, the first canoncial correlation between the academic(READ,WRITE,SCIENCE) and the psychological(MOTIVATION, SELF CONCEPT, LOCUS_OF_CONTROL) variables is 0.4918117. The second canoncial correlation between the variable sets is 0.2135887 and the 3rd canonical correlation is 0.0143087. I would say that the two sets of variables do not have a strong correlation because all of the canonical correlations are not that close to 1 or -1. The variable sets do have a slight positive correlation.are postively correlated. 
+
+For the students in PROG2, the first canoncial correlation between the academic(READ,WRITE,SCIENCE) and the psychological(MOTIVATION, SELF CONCEPT, LOCUS_OF_CONTROL) variables is 0.36199732. The second canoncial correlation between the variable sets is 0.10202825 and the 3rd canonical correlation is 0.02834979. I would say that the two sets of variables do not have a strong correlation because all of the canonical correlations are not that close to 1 or -1. The variable sets do have a slight positive correlation.are postively correlated. 
+
+
+We can see that between the 3 programs, Prog 2 is showing the strongest correlation between the academic and psychological variables with a canoncial correlation values: 0.4918117 0.2135887 0.0143087. PROG 3 seemed to have the weakest correlation between acadekic and psychological variables. However there isnn't that much difference btween the 3 programs.
