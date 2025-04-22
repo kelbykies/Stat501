@@ -1,0 +1,230 @@
+---
+title: "Stat501_Homework5"
+author: "Kelby Kies"
+date: "3/24/2021"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1:
+
+## Part b.)
+
+### i.) Because the variables in each of the two populations may not be multivariate normally distributed, we will find the $\lambda$ which transforms the data such that they are so. For a grid of $\lambda$ values, where each component $\lambda_{j}$ takes values in {0, 1/4, 1/3, 1/2, 1, 2, 3, 4}, find the $\lambda$ which maximizes the joint likelihood of $\lambda$ (from among the grid) give the observations. [10 points]
+```{r, message=FALSE}
+library(car)
+# Read in the data
+colleges <- read.table('~/Desktop/stat_501/Colleges.txt', sep = '\t', header = T)
+
+# Box Cox Function
+box_cox <- function(w, lambda, eps = 1e-03) 
+  { if (abs(lambda) < eps)
+    log(w)
+  else 
+    ((w^lambda) - 1)/lambda
+}
+
+# Log Likelihood function
+llhd <- function(lambda, x, y)
+  {
+  # Calculate means mu and v:
+  mu <- mean(box_cox(x, lambda))
+  v <- mean(box_cox(y, lambda))
+  sigma_x <- var(box_cox(x, lambda))
+  sigma_y <- var(box_cox(y, lambda))
+  
+  length(x)/2 * log(sigma_x) + length(y)/2 * log(sigma_y) + ((lambda - 1) * (sum(log(x)) + sum(log(y))))
+}
+
+
+library(dplyr)
+X_df <- dplyr::filter(colleges, colleges$School_Type == 'Lib Arts') %>% select(SAT, Acceptance, X..Student, Top.10., X.PhD, Grad.)
+Y_df <- dplyr::filter(colleges, colleges$School_Type == 'Univ') %>% select(SAT, Acceptance, X..Student, Top.10., X.PhD, Grad.)
+
+
+final_grid <- data.frame(lamda_values = c(0, 1/2, 1/3, 1/4, 1, 2, 3, 4), 
+                         SAT = c(llhd(lambda = 0, x = X_df$SAT, y = Y_df$SAT), llhd(lambda = 1/4, x = X_df$SAT, y = Y_df$SAT), 
+                                 llhd(lambda= 1/3, x = X_df$SAT, y = Y_df$SAT), llhd(lambda = 1/2, x = X_df$SAT, y = Y_df$SAT), 
+                                 llhd(lambda = 1, x = X_df$SAT, y = Y_df$SAT), llhd(lambda = 2, x = X_df$SAT, y = Y_df$SAT), 
+                                 llhd(lambda = 3, x = X_df$SAT, y = Y_df$SAT), llhd(lambda = 4, x = X_df$SAT, y = Y_df$SAT)),
+                         
+                         Acceptance = c(llhd(lambda = 0, x = X_df$Acceptance, y = Y_df$Acceptance), llhd(lambda = 1/4, x = X_df$Acceptance, y = Y_df$Acceptance), llhd(lambda= 1/3, x = X_df$Acceptance, y = Y_df$Acceptance), llhd(lambda = 1/2, x = X_df$Acceptance, y = Y_df$Acceptance), llhd(lambda = 1, x = X_df$Acceptance, y = Y_df$Acceptance), llhd(lambda = 2, x = X_df$Acceptance, y = Y_df$Acceptance),  llhd(lambda = 3, x = X_df$Acceptance, y = Y_df$Acceptance), llhd(lambda = 4, x = X_df$Acceptance, y = Y_df$Acceptance)),
+                         
+                         X..Student = c(llhd(lambda = 0, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda = 1/4, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda= 1/3, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda = 1/2, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda = 1, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda = 2, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda = 3, x = X_df$X..Student, y = Y_df$X..Student), llhd(lambda = 4, x = X_df$X..Student, y = Y_df$X..Student)),
+                         
+                         Top.10. = c(llhd(lambda = 0, x = X_df$Top.10., y = Y_df$Top.10.), llhd(lambda = 1/4, x = X_df$Top.10., y = Y_df$Top.10.), llhd(lambda= 1/3, x = X_df$Top.10., y = Y_df$Top.10.), llhd(lambda = 1/2, x = X_df$Top.10., y = Y_df$Top.10.),  llhd(lambda = 1, x = X_df$Top.10., y = Y_df$Top.10.), llhd(lambda = 2, x = X_df$Top.10., y = Y_df$Top.10.), llhd(lambda = 3, x = X_df$Top.10., y = Y_df$Top.10.), llhd(lambda = 4, x = X_df$Top.10., y = Y_df$Top.10.)),
+                         X.PhD = c(llhd(lambda = 0, x = X_df$X.PhD, y = Y_df$X.PhD), llhd(lambda = 1/4, x = X_df$X.PhD, y = Y_df$X.PhD), 
+                                 llhd(lambda= 1/3, x = X_df$X.PhD, y = Y_df$X.PhD), llhd(lambda = 1/2, x = X_df$X.PhD, y = Y_df$X.PhD), 
+                                 llhd(lambda = 1, x = X_df$X.PhD, y = Y_df$X.PhD), llhd(lambda = 2, x = X_df$X.PhD, y = Y_df$X.PhD), 
+                                 llhd(lambda = 3, x = X_df$X.PhD, y = Y_df$X.PhD), llhd(lambda = 4, x = X_df$X.PhD, y = Y_df$X.PhD)),
+                         
+                         Grad. = c(llhd(lambda = 0, x = X_df$Grad., y = Y_df$Grad.), llhd(lambda = 1/4, x = X_df$Grad., y = Y_df$Grad.), 
+                                 llhd(lambda= 1/3, x = X_df$Grad., y = Y_df$Grad.), llhd(lambda = 1/2, x = X_df$Grad., y = Y_df$Grad.), 
+                                 llhd(lambda = 1, x = X_df$Grad., y = Y_df$Grad.), llhd(lambda = 2, x = X_df$Grad., y = Y_df$Grad.), 
+                                 llhd(lambda = 3, x = X_df$Grad., y = Y_df$Grad.), llhd(lambda = 4, x = X_df$Grad., y = Y_df$Grad.))
+                         )
+
+print(final_grid)
+```
+Printed above is my final grid that contains the calculated log likelihood function for each lambda value. I am not sure if I did this correctly, but I wasn't sure how to optimize the log liklihood function so that I am trying every different value (0,1/4,1/3,1/2,1,2,3,4) for each different position in the $\lambda$ vector. 
+
+Based on what I have here it looks like the MLE is 
+$\hat\lambda = (\lambda_1, \lambda_2, \lambda_3,\lambda_4, \lambda_5, \lambda_6) = (4,4,4,4,4,4)$
+
+
+
+
+### ii.) With the transformed data, compare the mean values of the (transformed) SAT, % acceptance, cost per student, per cent of students in top 10 per cent of HS graduating class, per cent faculty with Ph.D.s and graduation rate, for the liberal arts vis-a-vis public universities? Are any of these means equal? [10 points]
+```{r, echo=FALSE, warning=FALSE}
+# Transform the data
+trans_SAT <- box_cox(w = colleges$SAT, lambda = 1/2)
+trans_Accept <- box_cox(w = colleges$Acceptance, lambda = 1/2)
+trans_XStudent <- box_cox(w = colleges$X..Student, lambda = 1/2)
+trans_top10 <- box_cox(w = colleges$Top.10., lambda = 1/2)
+trans_XPhD <- box_cox(w = colleges$X.PhD, lambda = 1/2)
+trans_Grad <- box_cox(w = colleges$Grad., lambda = 1/2)
+
+transformed_dta <- data.frame(colleges$School_Type, trans_SAT, trans_Accept, trans_XStudent, trans_top10, trans_XPhD, trans_Grad)
+x <- aggregate(transformed_dta, by = list(transformed_dta$colleges.School_Type), mean) %>% dplyr::select(Group.1, trans_SAT,trans_Accept,trans_XStudent, trans_top10, trans_XPhD, trans_Grad)
+
+# compare the means of the variables
+print("Mean Values:")
+print(x)
+stars(x[,c(-1)], labels =as.character(x[,1]),draw.segments=T, key.loc=c(0.15,5))
+
+```
+The means for each variable are very close. For most of the variables there is only a 1-2 value difference. For the graduationg rate both are ~16, so they are almost equal. The biggest difference in means between school types is found in the cost per student variable. 
+
+This star plot is showing which school type has the highest in each category after transforming the data with the box-cox transformation. Public University schools have the highest means in SAT, cost per student, per cent of students in top 10 per cent of HS graduating class, per cent faculty with Ph.D.s categories. Liberal Arts schools have the highest means in acceptance rate and graduation rate. 
+
+
+
+### iii.) Setting the False Discovery Rate at q = 0.05,which of the six variables have a significant difference between the liberal arts colleges and public universities. Interpret the results. 10 points]
+
+```{r,message=FALSE, warning=FALSE}
+# Add a group varibale
+colleges2 <- transformed_dta  %>% mutate(group = ifelse(transformed_dta$colleges.School_Type == "Lib Arts", 0, 1))
+colleges2$colleges.School_Type <- as.factor(colleges2$colleges.School_Type)
+
+fit.lm <- lm(group ~ trans_SAT + trans_Accept + trans_XStudent + trans_top10 + trans_XPhD + trans_Grad , data = colleges2)
+summary(fit.lm)
+```
+Here we see that the transformed SAT and cost per student have a significant effect between the different types of colleges at the 0.001 significance level. The percent of students in the top 10% of HS graduating class has a signifcant effect between the different types of colleges at the 0.01 level. These are the only variables that seem to have significance. 
+
+# Question 2:
+
+```{r, message=FALSE, warning=FALSE}
+library(sas7bdat)
+library(car)
+#source('~/Desktop/stat_501/manova.R')
+psych_sas7bdat <- read.sas7bdat('~/Desktop/stat_501/hw5/psych.sas7bdat', debug=FALSE)
+psych_sas7bdat$PROG <- as.factor(psych_sas7bdat$PROG)
+
+```
+
+## Part a.) Fit a linear model to the above and all the variables. Ignore interactions for now. Assume that the first level in the categorical variable has no additional effect (i.e. $\tau_1 = 0$) in the contrast. Summarize the results. [10 points]
+
+```{r, message=FALSE, warning=FALSE}
+# Assume that the first level in PROG has no additional effect in the contrast. 
+#psych_sas7bdat$PROG <- C(object = psych_sas7bdat$PROG, contr = contr.treatment(n = 3,  base = 2))
+psych_lm_a <- lm(cbind(LOCUS_OF_CONTROL, SELF_CONCEPT, MOTIVATION) ~ PROG + READ + WRITE + SCIENCE, data = psych_sas7bdat)
+class(psych_lm_a)
+psych_lm_a_manova <- Manova(psych_lm_a)
+summary(psych_lm_a_manova)
+```
+Based on the Manova summary, all of our predictor variables have a significant effect on predicting locus of control, self-concept and motivation of high school students at the 0.05 level.The PROG and WRTIE variables seem to have stronger effect at the 0.0001 level, while the SCIENCE variable has the weakest effect at the 0.05 level, although still significant.  
+
+## Part b.) Refit the model but after dropping the dependent variables on the test scores of writing and science. Summarize the results. [8 points]
+```{r,message=FALSE, warning=FALSE}
+psych_lm_b <- lm(cbind(LOCUS_OF_CONTROL, SELF_CONCEPT, MOTIVATION) ~ READ + PROG, data = psych_sas7bdat)
+
+psych_lm_b_manova <- Manova(psych_lm_b)
+summary(psych_lm_b_manova)
+```
+
+After refitting the linear model and removing the effect for the WRITE and SCIENCE variable, we see that both PROG and READ have a strong effect on the locus of control, self-concept and motivation at the 0.0001 significance level. By removing these variable, the READ effect became stronger at predicting locus of control, self-concept and motivation. 
+
+
+## Part c.) Is there a significant evidence that the writing and science test scores are related to the psychological profiles? [2 points]
+
+
+```{r,message=FALSE, warning=FALSE}
+#LRT
+library(stats)
+anova(psych_lm_a, psych_lm_b, test = "Wilks")
+```
+Here we see that the WRITE and SCIENCE terms are needed to significantly improve the model based on the 0.05 significance level because the P-value here is $2.618e-07$.Also the Wilks statistic is very large and close to 1. We will only reject the null if the wilk's statistic is small. Therefore we fail to reject the null hypothesis on the 0.05 significance level. 
+
+
+## Part d.) From the model in your results in (c) above, test simultaneously for whether there is a difference in psychological profiles between Program 1 and 2 and between Program 2 and 3. [10 points]
+
+
+```{r,message=FALSE, warning=FALSE}
+# Decide which model from the LRT in partc 
+print("Here is my Beta Matrix:")
+print(coef(psych_lm_a))
+
+# For that model, SIMULtaneously test whether there is a difference in psychological profiles between 1.) prog 1 and 2, 2.) prog 2 & 3
+# Test by testing for a diff in beta coefficinets : C* Beta
+
+C <- matrix(c(0,0,0,0,1,0,0,0,0,0,1,-1), ncol = 6,  by = T)
+matrix(c(0,1,0,0,0,0,0,1,-1,0,0,0), nrow = 2)
+C
+psych_lm_a_hyp <- linearHypothesis(model = psych_lm_a, hypothesis.matrix = C)
+psych_lm_a_hyp
+```
+Here I have set up a linearhypothesis() function that is testing to see if there is a difference in psychological profiles (Locus, movitvation, self-concept) between the groups Prog 1&2 and 2&3 simultaneously. If I did this correctly, then there is a significant difference in profiles between the 3 programs based on the 0.001 significance level. 
+
+
+## Part e.) Test the null hypothesis that the coefficient for the written test scores with locus of control as the outcome is equal to the corresponding coefficient with self concept as the outcome. [10 points]
+
+
+```{r,message=FALSE, warning=FALSE}
+print("Here is my Beta Matrix:")
+print(coef(psych_lm_a))
+print("Here is my C Matrix:")
+C_e <- matrix(c(0,0,1,0,0,0), nrow = 1, by = T)
+
+print("Here is my M Matrix:")
+M_e <- matrix(c(1,-1,0), nrow = 3, by = T)
+
+part_e_answer <- linearHypothesis(model = psych_lm_a, hypothesis.matrix = C_e, P = M_e)
+part_e_answer
+```
+Here I have set up a linearhypothesis() function that is testing if the coefficient for the written test scores with locus of control as the outcome is equal to the corresponding coefficient with self concept as the outcome. Here we can see that there is a significant difference in these coefficients when tested at the significance level 0.001. 
+
+
+## Part f.) Now, test the null hypothesis that the coefficient for science scores for locus of control is equal to the corresponding coefficient for science for the self concept variable, and that the coefficient for the written scores for locus of control is equal to the coefficient for the written scores for self concept. [10 points]
+
+
+```{r, message=FALSE, warning=FALSE}
+
+C_f <- matrix(c(0, 0, 1, 1, 0, 0), nrow = 1,  by = T)
+M_f <- matrix(c(1,-1,0), nrow = 3, by = T)
+M_f
+final_answerf <- linearHypothesis(model = psych_lm_a, hypothesis.matrix = C_f, P = M_f)
+final_answerf
+```
+Here I have set up a linearhypothesis() function that is testing the following:
+1.) if the coefficient for science scores for locus of control is equal than the science score for selc concept
+2.) if the coefficient for the written test scores with locus of control is equal to the coefficient for the written scores for self concept 
+Here we can see that there is a significant difference in both of these coefficient comparisons at the significance level 0.01. 
+
+
+## Part g.) Depending on the results from (c), fit a linear model with all interactions included. Interpret the results. [10 points]
+```{r, message=FALSE, warning=FALSE}
+psych_lm_g <- lm(cbind(LOCUS_OF_CONTROL, SELF_CONCEPT, MOTIVATION) ~ (READ + WRITE + SCIENCE + PROG)^4, data = psych_sas7bdat)
+psych_lm_g
+summary(psych_lm_g)
+anova(psych_lm_g)
+```
+Here I have printed the linear model fitted with all of the interaction terms, the summary of the linear model and the results of anova test. In referring to the anova resuls we see that the READ,WRITE & PROG terms have a significant effect at the 0.001 level. While SCIENCE is only significant at eh 0.05 level. We also see here that none of the interaction terms are found to be significant. 
+
+
+
+
