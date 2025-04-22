@@ -1,0 +1,314 @@
+---
+title: "Stat501_Homework8"
+author: "Kelby Kies"
+date: "4/27/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1
+
+## Part A.) Evaluate if the five groups support multivariate normality distributional assumptions. [10 points]
+
+```{r, warning=FALSE, message=FALSE}
+# Read in the data
+load('~/Desktop/stat_501/GRB-5groups.rda')
+# Test whether the 5 groups follow a MVN
+
+source('~/Desktop/stat_501/testnormality.R')
+
+print(" Cramer Test Statistic")
+group1 <- dplyr::filter(GRB, GRB$class == 1)
+group2 <- dplyr::filter(GRB, GRB$class == 2)
+group3 <- dplyr::filter(GRB, GRB$class == 3)
+group4 <- dplyr::filter(GRB, GRB$class == 4)
+group5 <- dplyr::filter(GRB, GRB$class == 5)
+
+#Cramer.test(GRB[,-1])
+# group1
+print("Class 1 q-value:")
+Cramer.test(group1[,-1])
+
+# group2
+print("Class 2 q-value:")
+Cramer.test(group2[,-1])
+# group3
+print("Class 3 q-value:")
+Cramer.test(group3[,-1])
+# group4
+print("Class 4 q-value:")
+Cramer.test(group4[,-1])
+# group5
+print("Class 5 q-value:")
+Cramer.test(group5[,-1])
+```
+
+If the q-value returned is less than 0.05, then normality is not good and is rejected. Thus we can not support Multivariate Normality Assumptions and the data should be transformed. The 5 classes would have to be transformed in a similar way which will require some more intense programming. For now we will leave the data how it is. 
+
+
+## Part B.) Assuming equal prior probabilities and equal costs of misclassifcation, construct Fisher’s linear discriminant function. [10 points]
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+library(MASS)
+library(ggplot2)
+lda <- lda(class ~., data=GRB, prior=c(.2,.2,.2,.2,.2))
+lda
+```
+Because we have 5 classes that the Gamma Ray Bursts can fall in, we have 4 sets of linear discriminant coefficients and thus 4 Fisher Linear Discriminant Functions:
+The Fisher Linear Discriminant functions are:
+1.) $ Class = -0.11140679*T50 - 0.03827327*T90 - 0.46531093*F1 - 1.19900658*F2 + 0.26976994*F3 + 0.17174454*F4 + 1.44760871*P64 + 6.18726628*P256 - 6.89112833*P1024$
+2.) $ Class = 0.5251030*T50 + 0.3970489*T90 + 0.5711469*F1 - 0.5821010*F2 - 0.7932447*F3 + 0.1467376*F4 + 6.0739405*P64 - 9.2732590*P256 + 1.5003026*P1024$
+3.) $ Class = 1.9297123*T50 - 3.2310124*T90 - 0.1632299*F1 + 0.2746655*F2 + 1.0083814*F3 - 0.1972441*F4 - 10.6699427*P64 + 10.3833981*P256 - 2.0483281*P1024$
+4.) $ Class = -0.9854645*T50 + 0.7749042*T90 + 0.3176527*F1 - 1.2768597*F2 + 4.2040301*F3 - 1.5753747*F4 + 0.0576076*P64 + 3.0383037*P256 - 5.0926131*P1024$
+
+### Part Bi.) Display the first two linear discriminant coordinates. Do all the variables in the discriminant function appear to be important? [10 points]
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+library(klaR)
+lda.data <- cbind(GRB, predict(lda)$x)
+#lda.data
+ggplot(lda.data, aes(LD1, LD2, color = as.factor(class))) +
+  geom_point() + scale_color_manual(breaks = c("1", "2", "3", "4","5"),
+                        values=c("red", "blue", "green", "purple","orange"), name = "Class")+
+  ggtitle("Linear Discriminant Analysis for Gamma Ray Burst Data")
+print("Linear Discriminant Coordinates:")
+lda$scaling
+
+print("Forward selection:")
+stepclass(x=GRB[,-1], formula=class~.,grouping=as.factor(GRB[,1]),method = "lda", direction = "forward")
+print("Backward selection:")
+stepclass(x=GRB[,-1], formula=class~.,grouping=as.factor(GRB[,1]),method = "lda", direction ="backward")
+```
+When we display the first 2 linear discriminate coordinates we can see that the 5 classes do have some separation in the scatter plot. The first discriminant coordinate (x-axis) separates class 1,2,3 and class 4,5 pretty well, although there is still some overlap. The second discriminat coordinate(y-axis) shows minimal separation between class 1,3,4 and class 2,5. But the classes are not perfectly separate even when using the first 2 discriminate coordinates. 
+
+Do all the variables in the discriminant function appear to be important?
+To determine what variables are important we can interpret the linear discriminant coordinates similar to how we would interpret the PC's of a principal component analsysis. In our linear discriminant analysis, we can see that the first discriminant coordinate shows a contrast between (T50,T90,F1,F2, P1024) and (F3, F4,P64 and P256).The second discriminant coordinate shows a contrast between (F2,F3, P256) and all other variables. The third discriminant coordinate shows a contrast between (T90,F1, F4,P64, P1024) and (T50, F2,F3,P256). The fourth discriminant coordinate shows a contrast between (T50,F2,F4, P1024) and (T90, F1, F3,P64,P256). After looking at the discriminate coordinates, it appears to me that all of the variables do appear to be important. 
+
+Another way we can check is to use the stepclass method found in the klaR package. This function allows us to doa forward/backward variable selection for classification. When I run the forward selection, it appears that the most important variables to predict class are F2 and P64. When I ran the backward selection, the most important variables to predict class are T50, T90, F2, F3, F4, P64, P256, P1024, thus most of the variables are important when using the backwards variable selection method. 
+
+### Part Bii.) Calculate the misclassification rates using the AER and the leave-one-out cross-validation method. [10 points]
+```{r, message=FALSE, warning=FALSE}
+lda_2 <- lda(class ~., data=GRB, prior=c(.2,.2,.2,.2,.2), CV=TRUE)
+print("Prediction of Class Membership:")
+table(GRB$class, lda_2$class) 
+print("Error Rate:")
+mean(GRB$class != lda_2$class)
+```
+
+## Part C.) Repeat the same exercise as in (b) but using quadratic discriminant analysis, CART and k-nearest neighbors. Choose the best tree or the number of nearest neighbors by cross-validation. Summarize the performance of the results for all four cases (LDA, QDA, CART and k-NN). [10 + 15+10+5 points]
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# Quadratic Discriminant Analysis
+GRB_qda<-qda(class ~ ., data=GRB,
+               prior=c(.2,.2,.2,.2,.2), CV=TRUE)
+
+
+print("Prediction of Class Membership:")
+table(GRB$class, GRB_qda$class) 
+# Error Rate
+mean(GRB$class != GRB_qda$class)
+
+# CART: Classification and Regression Tree
+library(tree)
+grb_tree <- tree(class ~ ., data = GRB)
+grb_tree_cv <- cv.tree(grb_tree, K = nrow(GRB))
+plot(grb_tree_cv)
+grb_prune_tree<-prune.tree(grb_tree, best = 6)
+
+plot(grb_prune_tree)
+text(grb_prune_tree)
+
+# K-nearest Neighbors
+library(class)
+
+#grb_knn <- knn(train = GRB, test =GRB[-1],  cl = GRB$class, k = 1)
+knn.cv.err<-NULL
+knn.cv.sd<-NULL
+for (i in 1:10) { 
+  temp<-NULL
+  for (j in 1:100)
+    temp <- c(temp,mean(knn.cv(GRB,cl = GRB$class, k = i) != GRB$class))
+  knn.cv.err<-c(knn.cv.err,mean(temp))
+  knn.cv.sd<-c(knn.cv.sd,sd(temp))
+  cat("\n Done i= ",i)
+}
+
+plot(knn.cv.err, xlim = c(1, 10),
+     ylim=c(min(knn.cv.err - 1.96 * knn.cv.sd),
+       max(knn.cv.err + 1.96 * knn.cv.sd)), type = "n")
+lines(knn.cv.err + 1.96 * knn.cv.sd, lty = 2, col = "blue")
+lines(knn.cv.err - 1.96 * knn.cv.sd, lty = 2, col = "green")
+lines(knn.cv.err, col = "red")
+knn.cv.err
+# K should be 1
+
+library(class)
+
+grb.knn <- knn(train = GRB[, c("F2", "P64")], test =
+   GRB[, c("F2", "P64")],  cl = GRB$class, k = 1)
+
+plot(x=GRB$F2, y = GRB$P64, pch = as.character(GRB$class),
+     col = as.character(grb.knn))
+
+```
+Summarize the performance of the results for all four cases (LDA, QDA, CART and k-NN).
+
+The LDA result in 4 linear discriminant functions. The first two discriminant coefficients showed very little separation in the data. When selecting which variables to use it appears that all of the variables are important when looking at the LD's, but when we use a formal method (i.e. stepclass()) we see that all of the variables are important to predict the class the GRB falls into except for the F1 variable representing the time integrate fulences in the 20-50 keV spectral channel.  The misclassification error rate was 0.235147.
+
+The QDA results show that it performs better than the LDA. The class predictions have smaller numbers on the off diagonal, which I believe means that the GRBs are being classified into the correct class. This is also supported with a misclassification error rate of 0.03689806, which is smaller than the LDA's error rate. 
+
+Using the Classification and Regression Tree method, I found that the best tree has 6 clusters.
+
+Here I tried to determine what the best k value to use was. Looking at the cross-validate error rates we see that k = 1 is best because all 3 
+The error rate is 0.001250782. If we look at the plot of the F2 variable vs the P64 variable we can see very little separation between the classes. Possibly I am not comparing the most important variables though. 
+
+
+## Part D.) For each of the groups, test the hypothesis that a fewer number of factors is adequate to express the variables in the dataset. [15 points]
+```{r}
+# use a likelihood Ratio Test
+library(fad)
+# Class 1
+# factanal(x=as.matrix(group1[,-1]), factors=1, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group1[,-1]), factors=2, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group1[,-1]), factors=3, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group1[,-1]), factors=4, method = "mle", scale=T, center=T)
+factanal(x=as.matrix(group1[,-1]), factors=5, method = "mle", scale=T, center=T)
+# No
+
+# Class 2
+# factanal(x=as.matrix(group2[,-1]), factors=1, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group2[,-1]), factors=2, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group2[,-1]), factors=3, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group2[,-1]), factors=4, method = "mle", scale=T, center=T)
+factanal(x=as.matrix(group2[,-1]), factors=5, method = "mle", scale=T, center=T)
+# No
+
+# Class 3
+# factanal(x=as.matrix(group3[,-1]), factors=1, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group3[,-1]), factors=2, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group3[,-1]), factors=3, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group3[,-1]), factors=4, method = "mle", scale=T, center=T)
+factanal(x=as.matrix(group3[,-1]), factors=5, method = "mle", scale=T, center=T)
+
+# Class 4
+# factanal(x=as.matrix(group4[,-1]), factors=1, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group4[,-1]), factors=2, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group4[,-1]), factors=3, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group4[,-1]), factors=4, method = "mle", scale=T, center=T)
+factanal(x=as.matrix(group4[,-1]), factors=5, method = "mle", scale=T, center=T)
+# Yes 4 factors!
+
+# Class 5
+# factanal(x=as.matrix(group5[,-1]), factors=1, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group5[,-1]), factors=2, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group5[,-1]), factors=3, method = "mle", scale=T, center=T)
+# factanal(x=as.matrix(group5[,-1]), factors=4, method = "mle", scale=T, center=T)
+factanal(x=as.matrix(group5[,-1]), factors=5, method = "mle", scale=T, center=T)
+```
+Here we tested the hypothesis that for each class of GRB, the variables can be represented for a fewer number of factors. For each class I performed a factor discriminatory analysis using factanal(). I did this for 5,4,3,2,1 factors. What I found is that most of the classes can not be explained by fewer than 5 factors except for Class 4 which can be explained by 4 factors! We know this because when I performed and fda on the data from class 4, the resulting p-value was 0.272 which is not significant enought to reject the null hypothesis.
+
+
+# Question 2: Compare the results of clustering obtained using the Women’s and Men’s track records results. Use hierarchical clustering with the correlation similarity matrix, k-means and model-based clustering. Display the results using appropriate graphical aids. Comment. [30 points]
+
+```{r, echo=FALSE, message = FALSE, warning=FALSE, figures-side, fig.show="hold", out.width="50%"}
+# Read in the Women's and Men's track records data
+women_records <- read.table('~/Desktop/stat_501/women-track-records.dat')
+men_records <- read.table('~/Desktop/stat_501/men-track-records.dat')
+
+# Hierarchial clustering with correlation similarity matrix
+#  Create a matrix of variables to be used in the cluster analysis
+#  and a vector of patient id numbers
+	  
+runner_country_w <- women_records[,8]
+runner_country_m <- men_records[,9]
+times_w <- women_records[ ,1:7]
+times_m <- men_records[,-9]
+#  Standardize the data
+# Women's Data
+runner_mean_w<-apply(times_w,2,mean)
+runner_std_w<-sqrt(apply(times_w,2,var))
+runner_sx_w<-sweep(times_w,2,runner_mean_w,FUN="-")
+runner_sx_w<-sweep(runner_sx_w,2,runner_std_w,FUN="/")
+# Men's Data
+runner_mean_m<-apply(times_m,2,mean)
+runner_std_m<-sqrt(apply(times_m,2,var))
+runner_sx_m<-sweep(times_m,2,runner_mean_m,FUN="-")
+runner_sx_m<-sweep(runner_sx_m,2,runner_std_m,FUN="/")
+
+# Women's Plot
+hc_w <- hclust(dist(runner_sx_w),method="complete")
+plot(hc_w,label=runner_country_w, main = "Complete Linkage Cluster Analysis: Women's Track Records") 
+# Men's Plot
+hc_m <- hclust(dist(runner_sx_m),method="complete")
+plot(hc_m,label=runner_country_m, main = "Complete Linkage Cluster Analysis: Men's Track Records") 
+```
+Comment: What is interesting is that we can see the division of largely 2 clusters for both the male and the female track records. Even more so one  of those clusters is the same between male and female. 
+The other main group is similar between the two sexes as well with some slight differences. Based on this I would probably cut this tree into 3 main clusters for both sexes. 
+
+```{r, echo=FALSE, message = FALSE, warning=FALSE, fig.show="hold", out.width="50%"}
+
+library(MASS)
+
+# K-Means
+kmnsinithcl <- function(x.data, nclus, ncut = nclus, hcl.tree)
+{
+    x.hcl <- hcl.tree
+    x.cl <- cutree(x.hcl, k = ncut)
+    data.x <- data.frame(x.data, cl = x.cl)
+    means <- aggregate(. ~ cl, data = data.x, FUN = mean)
+    return(kmeans(x.data,centers= means[, -1]))
+}
+
+hc_w <- hclust(dist(runner_sx_w),method="ward.D2") 
+km_w <- kmnsinithcl(runner_sx_w, nclus = 3, ncut = 3, hcl.tree = hc_w)
+hc_m <- hclust(dist(runner_sx_m),method="ward.D2") 
+km_m <- kmnsinithcl(runner_sx_m, nclus = 3, ncut = 3, hcl.tree = hc_m)
+
+# Women:
+a <- lda(runner_sx_w, km_w$cluster)  
+#a$svd^2/sum(a$svd^2)
+#a$scaling
+scores <- as.matrix(runner_sx_w) %*% a$scaling[ ,1:2]
+eqscplot(scores, type="n", xlab="first canonical discriminant",
+         ylab="second canonical discriminant")
+text(x = scores[ ,1], y = scores[ ,2], cutree(hc_w, 3))
+title("K-means Cluster Analysis: Women's Track Records")    
+# Men:
+a <- lda(runner_sx_m, km_m$cluster)  
+#a$svd^2/sum(a$svd^2)
+#a$scaling
+scores <- as.matrix(runner_sx_m) %*% a$scaling[ ,1:2]
+eqscplot(scores, type="n", xlab="first canonical discriminant",
+         ylab="second canonical discriminant")
+text(x = scores[ ,1], y = scores[ ,2], cutree(hc_m, 3))
+title("K-means Cluster Analysis: Men's Track Records")    
+```
+Comment:
+When we plot the clusters using the K-Means Analysis we see roughly a similar pattern. The two largest clusters 1 and 2 are generally clustered tighter together while, the 3rd cluster is very small and very sparse. Maybe the samples in this cluster could be an outlier. I would say overall there still isn't great separation between the clusters. 
+
+
+```{r, echo=FALSE, message = FALSE, warning=FALSE, fig.show="hold", out.width="50%"}
+# Model Based Clustering
+library(mclust)
+hm_w <- Mclust(runner_sx_w)
+hm_m <- Mclust(runner_sx_m)
+
+plot(hm_w$BIC)
+title("Model Based CLuster Analaysis BIC Values: Women")
+plot(hm_m$BIC)
+title("Model Based CLuster Analaysis BIC Values: Men")
+
+# a <- lda(runner_sx_w, hm_w$classification)
+# a$svd^2/sum(a$svd^2)
+# a$scaling
+# scores <- as.matrix(runner_sx_w) %*% a$scaling[ ,1]
+# eqscplot(scores, type="n", xlab="first canonical discriminant",
+#                  ylab="second canonical discriminant")
+# text(x = scores[ ,1], y = scores[ ,2], hm_w$classification)
+# title("Model Based Cluster Analysis: Women's Track Record")
+
+```
+Comment:I had trouble plotting the actual data after determing the clusters via model based clustering. Instead I showed a graph of the BIC values to show that the women's data is best displayed with a VVV model with 2 clusters and the men's data is best displayed with the VEE model and 2 clusters as well. 
+
+I ran in to trouble plotting the data because I tried to use the classification from mclust() to run an lda, but because the optimum # of clusters is 2 this results in 1 linear discriminant function and I need at least 2 to plot on the x and y axes. 
+
