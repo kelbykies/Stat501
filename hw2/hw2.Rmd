@@ -1,0 +1,133 @@
+---
+title: "Stat501_Homework2"
+author: "Kelby Kies"
+date: "2/28/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Question 1:
+## Part A: Read in the file: you may use readxl or XLConnect or some other package. (I usually use readxl but you should use whatever package you find most comfortable to work with.) Store this dataset into a file called senators. [5 points]
+
+```{r cars}
+library(tidyverse)
+library(readxl)
+
+senators <- read_excel("~/Desktop/stat_501/hw2/senate_voting_data.xls")[,3:102]
+# Store in file
+write.table(senators, '~/Desktop/senators_file.txt', append = FALSE, sep = " ", dec = ".",row.names = TRUE, col.names = TRUE)
+```
+
+## Part B: Using Andrews’ curves, display the voting preferences of each senator. Use different colors for “Republican”, “Democratic” and “Independent”. Comment. [10 points]
+
+Comment:
+Here I have created 2 Andrew's Curve plots that are colored based upon the political party of each senator. Each line represents a senator. 
+The first plot is creating the plot using the type = 4 parameter and the second plot is using type = 3 parameter. 
+The type parameters here is a different f(t). 
+```{r pressure, echo=FALSE}
+source('~/Desktop/stat_501/ggandrews.R')
+senators.names <- names(senators)
+rev.party.state.names <- lapply(X = strsplit(gsub(pattern = "[.]", 
+                                                  replacement = " ",
+                                                  x = senators.names), 
+                                             split = " "), FUN = rev)
+senators.party <- lapply(X = rev.party.state.names, 
+                         FUN = function(x)(unlist(x)[1]))
+senators.last.names <- lapply(X = rev.party.state.names, 
+                              FUN = function(x)(unlist(x)[7]))
+
+senator_transpose <- t(senators) %>% as.data.frame() 
+
+final_senator <- senator_transpose %>% mutate(party = as.factor(c(unlist(senators.party))))
+
+ggandrews(df = final_senator, type = 4, clr = 543, linecol = c('blue','green','red'))
+```
+
+```{r, echo  = FALSE}
+ggandrews(df = final_senator, type = 3, clr = 543, linecol = c('blue','green','red'))
+
+```
+
+Comments on the first plot:
+This plot shows no big voting differences between the political parties. 
+As time goes on it seems like the nice smooth trend becomes disrupted. 
+
+
+
+# Question 2:
+## Part A:Formulate a correlation plot and discuss the general relationships,if any,between the month-to-month frequency of the number of tornadoes in the US. Are there any patterns? How about the variances? [10 points]
+```{r, echo = FALSE}
+tornado <- read.table('~/Desktop/stat_501/hw2/tornf1p.txt', header = FALSE, sep = '\t')
+rownames(tornado) <- tornado$V1
+tornado <- dplyr::rename(tornado, Jan = V2, Feb = V3, Mar = V4, Apr = V5, May = V6, June = V7, July = V8, Aug = V9, Sep = V10, Oct = V11, Nov = V12, Dec = V13) %>% dplyr::select(Jan, Feb, Mar, Apr, May, June, July, Aug, Sep, Oct, Nov, Dec)
+source('~/Desktop/stat_501/plotcorr.R')
+plot.corr(tornado)
+```
+Are there any patterns? How about the variances? [10 points]
+To me it seems like the spring months (jan - april) have a negative correlation 
+with the summer(june- sep) and even some fall months have a negative correlation. 
+Similarly the variances increase during the summer months meaning that the amount
+of F1 tornados occuring during these months varies from year to year. The maximum 
+variance happens in April with 4262.70 and the minimum happens in october with 192.1.
+
+## Part B: Divide the period into the three 20 year periods (1955-1974, 1975-1994, 1995-2014). Call these periods I, II and III respectively.
+
+### i.) For each period,construct a parallel-coordinates plot(use color for the different periods).Superimpose the mean for each group.
+```{r, echo = FALSE}
+source('~/Desktop/stat_501/parcoordplot.R')
+# Divide the period into the three 20 year periods (1955-1974, 1975-1994, 1995-2014). 
+tornado$period <- '2'
+tornado$period[rownames(tornado) < 1975] <- '1'
+tornado$period[rownames(tornado) > 1994] <- '3'
+parcoordplot(xx = tornado[,-13], cl = as.numeric(tornado[,13]), alpha = 0.15, legend = TRUE, FUN = mean)
+
+```
+
+Are there any patterns that you can see? [10 points]
+There is not clear separation for most of the months of the year, however from May to Sep there is very clear separation between Period 1(1955-1974) & 2(1975-1994) and Period 3(1995-2014), which could suggest that the avg. number of F1 tornadoes happening from May to Sep has decreased over time. 
+
+### ii.) Display these observations using a survey plot. 
+```{r, echo = FALSE}
+source('~/Desktop/stat_501/surveyplot.R')
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 1)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 2)
+#surveyplot(cbind(tornado[,-13],as.numeric(as.factor(tornado[,13]))),dataname = 'F1 Tornados each month in the U.S. (1955-2014)', order = 3, lwd = 3)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 4)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 5)
+surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))),dataname = 'F1 Tornados each month in the U.S. (1955-2014)', order = 6, lwd = 3)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 7)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 8)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 9)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 10)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 11)
+# surveyplot(cbind(tornado[,-13], as.numeric(as.factor(tornado[,13]))), order = 12)
+```
+Are there any patterns that we can see? You may try out patterns with different months as the ordering variable and see which one provides the clearest separation. [10 points]
+
+Ordered by the month of June! Generally as I looked at each month, the clearest separation was shown when I ordered by June. 
+Here the blue period is mostly near the top of the graph, with red in the middle and finally green period. 
+
+
+### iii.) Display the three group means using Chernoff faces and stars. 
+```{r, echo = FALSE}
+#source('~/Desktop/stat_501/visualization.R')
+# Calculate 3 group means:
+means <- aggregate(tornado[,-13], list(tornado[,13]), mean)
+
+# Chernoff faces
+library(TeachingDemos)
+faces2(means[,-1],  labels = means[,1])
+
+# Stars
+stars(means[,-1], labels = as.character(means[,1]))
+```
+Are there any differences between these three means. [5 points]
+There are big differences between group 3 (1995-2014) and the other two groups based upon the cheroff faces.
+Based on the star plot, it looks like group 1 (1955-1974)  has higher means for the most consecutive months out of all the groups.
+Group 2 (1975-1994) seems to have overall lower means. 
+
+
